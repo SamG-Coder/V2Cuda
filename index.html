@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>V2Cuda — Live shader studio</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%239ce6c5' d='M8 8h16l8 28L40 8h16L36 56h-8z'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark">V<span>2</span></span
+        ><b>V2Cuda</b><span class="tag">STUDIO</span>
+      </div>
+      <div class="project">
+        <span class="project-dot"></span
+        ><input id="project-name" aria-label="Project name" value="Rising Mist" /><span
+          id="save-state"
+          >Saved locally</span
+        >
+      </div>
+      <nav>
+        <button id="undo" title="Undo · Ctrl Z">↶</button
+        ><button id="redo" title="Redo · Ctrl Shift Z">↷</button><span class="divider"></span
+        ><button id="open-project">Open</button><button id="save-project">Save project</button
+        ><button id="help" class="help" aria-label="Help">?</button>
+      </nav>
+    </header>
+    <div class="workspacebar">
+      <div class="workspace-title">
+        Effects workspace <span>/</span> <b id="effect-title">Rising Mist</b>
+      </div>
+      <div class="pipeline">
+        <span>NODE GRAPH</span><i>→</i><span>.CU</span><i>→</i><span>WGSL</span><i>→</i
+        ><b><em></em> LIVE WEBGPU</b>
+      </div>
+    </div>
+    <main>
+      <section class="preview panel">
+        <div class="panel-head">
+          <div>
+            <span class="tiny-icon">◈</span><b>Viewport</b
+            ><span class="small-tag">PERSPECTIVE</span>
+          </div>
+          <div>
+            <button id="grid-toggle" class="icon-btn" title="Toggle composition guides">▦</button
+            ><button id="alpha-toggle" class="icon-btn" title="Transparent background">▧</button
+            ><button id="camera-reset" class="icon-btn" title="Reset camera">⌖</button
+            ><button id="fullscreen" class="icon-btn" title="Fullscreen viewport">⛶</button>
+          </div>
+        </div>
+        <div id="stage" class="stage">
+          <canvas
+            id="preview"
+            width="640"
+            height="640"
+            aria-label="Live CUDA smoke simulation. Drag to orbit and scroll to zoom."
+          ></canvas>
+          <div id="guides" class="guides" hidden></div>
+          <div class="viewport-top">
+            <span class="live-pill"><i></i> LIVE</span><span id="render-size">640 × 640</span>
+          </div>
+          <div class="viewport-bottom">
+            <div class="axis"><i>Y</i><b>Z</b><span>X</span></div>
+            <span>Drag to orbit <i>·</i> Scroll to zoom</span>
+          </div>
+          <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <b>Building your volume</b><span id="loading-text">Connecting WebGPU…</span>
+          </div>
+        </div>
+        <div class="preview-footer">
+          <span><i class="status-dot"></i><span id="gpu-status">Connecting</span></span
+          ><select id="quality" aria-label="Simulation quality">
+            <option value="64">64³ · Balanced</option>
+            <option value="96">96³ · High detail</option>
+            <option value="128">128³ · Ultra</option>
+            <option value="48">48³ · Fast preview</option></select
+          ><span id="fps">— fps</span>
+        </div>
+        <div class="preset-strip">
+          <div class="preset-label">STARTING POINTS<span>Live, editable volumes</span></div>
+          <button data-preset="rising" class="preset active">
+            <span class="preset-art rising"></span
+            ><span>Rising Mist<small>Buoyant · billowing</small></span></button
+          ><button data-preset="wispy" class="preset">
+            <span class="preset-art wispy"></span
+            ><span>Wispy Mist<small>Delicate · turbulent</small></span></button
+          ><button data-preset="fog" class="preset">
+            <span class="preset-art fog"></span
+            ><span>Low Fog<small>Wide · slow moving</small></span>
+          </button>
+        </div>
+      </section>
+      <section class="editor panel">
+        <div class="panel-head editor-head">
+          <div class="tabs">
+            <button data-tab="graph" class="active">Node graph</button
+            ><button data-tab="cuda">CUDA <span>.cu</span></button
+            ><button data-tab="wgsl">WGSL</button>
+          </div>
+          <button id="add-node" class="add-node">＋ Add node</button>
+        </div>
+        <div id="graph-view" class="graph-view">
+          <div id="graph-world">
+            <svg id="wires"></svg>
+            <div id="nodes"></div>
+          </div>
+          <div class="graph-label">
+            SHADER NETWORK<span id="node-count">8 nodes · 7 connections</span>
+          </div>
+          <div class="graph-tools">
+            <button id="fit-graph" title="Fit graph">⌖ Fit</button
+            ><button id="zoom-out" aria-label="Zoom graph out">−</button
+            ><span id="graph-zoom">100%</span
+            ><button id="zoom-in" aria-label="Zoom graph in">+</button>
+          </div>
+          <div class="graph-hint" id="graph-hint">
+            Connect matching sockets · Drag canvas to pan
+          </div>
+        </div>
+        <div id="code-view" class="code-view" hidden>
+          <div class="code-toolbar">
+            <span id="code-name">rising-mist.cu</span
+            ><select id="kernel-select" aria-label="WGSL kernel"></select
+            ><button id="copy-code">Copy source</button>
+          </div>
+          <pre id="source-code"></pre>
+        </div>
+        <div class="compile-panel">
+          <div class="compile-heading">
+            <span id="compile-dot" class="status-dot"></span
+            ><b id="compile-status">Preparing compiler</b><span id="compile-time"></span
+            ><button id="rebuild" title="Rebuild all kernels">↻ Rebuild</button>
+          </div>
+          <div id="compile-detail">Generated CUDA will compile automatically as you edit.</div>
+          <div class="compile-stages">
+            <span>01 <b>Generate .cu</b></span
+            ><i>→</i><span>02 <b>Compile kernels</b></span
+            ><i>→</i><span>03 <b>Run on GPU</b></span>
+          </div>
+        </div>
+      </section>
+      <aside class="inspector panel">
+        <div class="panel-head">
+          <b>Node details</b><button id="delete-node" title="Delete selected node">⌫</button>
+        </div>
+        <div id="inspector-content"></div>
+        <div class="inspector-note">
+          <span>LIVE GENERATION</span>
+          <p>
+            Every connected node contributes to the CUDA program. Changes compile and update the
+            running volume.
+          </p>
+        </div>
+      </aside>
+      <section class="timeline panel">
+        <div class="panel-head">
+          <div><b>Timeline</b><span class="small-tag">30 FPS</span></div>
+          <div class="transport">
+            <button id="restart" title="Go to start">↤</button
+            ><button id="step-back" title="Previous frame">‹</button
+            ><button id="play" class="play" title="Play or pause · Space">Ⅱ</button
+            ><button id="step-forward" title="Next frame">›</button
+            ><span class="timecode" id="timecode">00:00:00</span
+            ><span class="muted">/ 00:08:00</span>
+          </div>
+          <div>
+            <button id="loop" class="active" title="Loop playback">↻ Loop</button
+            ><button id="add-key" title="Add keyframe for selected property">◇ Add key</button>
+          </div>
+        </div>
+        <div class="timeline-body">
+          <div id="track-names" class="track-names"></div>
+          <div id="track-area">
+            <div class="ruler" id="ruler"></div>
+            <div id="tracks"></div>
+            <div id="playhead"><span></span></div>
+            <input
+              id="scrubber"
+              aria-label="Timeline frame"
+              type="range"
+              min="0"
+              max="240"
+              value="0"
+            />
+          </div>
+        </div>
+        <div class="timeline-foot">
+          <span id="track-hint"
+            >Select a property, then add a keyframe. Click a diamond to seek; right-click to
+            remove.</span
+          ><span id="cache-status">GPU state cache · 0 frames</span>
+        </div>
+      </section>
+    </main>
+    <footer class="statusbar">
+      <span><i class="status-dot"></i> <span id="bottom-status">Starting CUDA WebShader</span></span
+      ><span id="solver-status">3D smoke · 16 pressure iterations · GPU resident</span
+      ><span>V2Cuda <b>0.1</b></span>
+    </footer>
+    <div id="toast" role="status"></div>
+    <input type="file" id="project-file" accept=".json" hidden />
+    <dialog id="node-dialog">
+      <div class="dialog-heading">
+        <h2>Add a node</h2>
+        <button class="close-dialog" aria-label="Close">×</button>
+      </div>
+      <p>Choose a node, then connect its matching sockets.</p>
+      <div id="node-library"></div>
+    </dialog>
+    <dialog id="help-dialog">
+      <div class="dialog-heading">
+        <h2>Your live shader workspace</h2>
+        <button class="close-dialog" aria-label="Close">×</button>
+      </div>
+      <p>
+        V2Cuda generates CUDA from the connected node graph, compiles it to WGSL, and runs a 3D
+        smoke solver and volume renderer on WebGPU.
+      </p>
+      <dl>
+        <dt>Connect nodes</dt>
+        <dd>
+          Click an output socket, then a matching input. Right-click an input or wire to disconnect.
+        </dd>
+        <dt>Navigate</dt>
+        <dd>
+          Drag nodes to arrange. Drag empty graph space to pan; scroll to zoom. Drag the viewport to
+          orbit.
+        </dd>
+        <dt>Animate</dt>
+        <dd>
+          Pause, select a property, change its value, then click its diamond to insert a keyframe.
+          Scrubbing replays and caches the actual simulation.
+        </dd>
+        <dt>Inspect the shader</dt>
+        <dd>
+          The CUDA and WGSL tabs show the exact generated source and installed kernels. Errors
+          preserve the last valid running shader.
+        </dd>
+        <dt>Shortcuts</dt>
+        <dd>
+          Space: play / pause · Ctrl Z: undo · Ctrl Shift Z: redo · Ctrl S: save project · Delete:
+          remove node · F: fit graph
+        </dd>
+      </dl>
+      <p class="muted">
+        This is a bounded smoke authoring system. Particle simulation, collision geometry, VDB and
+        arbitrary CUDA editing are not implemented.
+      </p>
+    </dialog>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
