@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 await mkdir('reports', { recursive: true });
-const report = { checks: [], errors: [], url: 'http://localhost:5198' },
+const report = { checks: [], errors: [], url: process.env.STUDIO_URL || 'http://localhost:5198' },
   check = (name, data = {}) => {
     report.checks.push({ name, ...data });
     console.log('PASS', name, JSON.stringify(data));

@@ -3,13 +3,19 @@
   "version": "0.1.0",
   "description": "Live node-based CUDA WebShader studio with GPU smoke simulation and volumetric rendering.",
   "license": "MIT",
-  "engines": {"node": ">=20"},
-  "repository": {"type": "git", "url": "https://github.com/SamG-Coder/V2Cuda.git"},
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SamG-Coder/V2Cuda.git"
+  },
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
+    "build:pages": "npm run build && node scripts/package-pages.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node scripts/test-browser.mjs"
   },

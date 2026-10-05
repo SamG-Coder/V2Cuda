@@ -1,5 +1,9 @@
 # V2Cuda
 
+**[Open the live studio](https://samg-coder.github.io/V2Cuda/)** — requires a WebGPU-capable browser.
+
+[![Deploy GitHub Pages](https://github.com/SamG-Coder/V2Cuda/actions/workflows/pages.yml/badge.svg)](https://github.com/SamG-Coder/V2Cuda/actions/workflows/pages.yml)
+
 [![Validate CUDA studio](https://github.com/SamG-Coder/V2Cuda/actions/workflows/ci.yml/badge.svg)](https://github.com/SamG-Coder/V2Cuda/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -78,10 +82,21 @@ Simulation blocks are 64 × 1 × 1; rendering blocks are 8 × 8 × 1. Dispatch d
 
 ## Verification
 
+GitHub Actions validates pushes and pull requests. Pushes to `main` also build and deploy the static studio to GitHub Pages. The Pages package includes the complete browser compiler/runtime dependencies, compiler worker, CUDA and WGSL artifacts, styles, preview image and licenses. All browser paths are relative for hosting under `/V2Cuda/`.
+
+`npm run build:pages` recreates the `dist/` package, checks the reachable module graph and writes a SHA-256 asset manifest. The hosted app generates and compiles edits in the browser; it does not need a server-side compiler.
+
 ```powershell
 npm test
 npm run build
 # With npm start running in another terminal:
+npm run test:browser
+```
+
+To run the same GPU/browser suite against the deployed site:
+
+```powershell
+$env:STUDIO_URL = 'https://samg-coder.github.io/V2Cuda/'
 npm run test:browser
 ```
 
